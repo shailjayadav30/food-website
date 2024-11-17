@@ -1,23 +1,22 @@
-const express = require('express');
-const mongoose = require('mongoose');
-require('dotenv').config();
+const express = require("express");
+const mongoose = require("mongoose");
+const serverless = require("serverless-http");
+require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json()); // for parsing JSON requests
+app.use(express.json());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((error) => console.error("MongoDB connection error:", error));
 
 // Routes
-app.use('/auth', require('./routes/auth'));
-app.use('/orders', require('./routes/order'));
+app.use("/auth", require("./routes/auth"));
+app.use("/orders", require("./routes/order"));
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Export as serverless function
+module.exports = app;
+module.exports.handler = serverless(app);
