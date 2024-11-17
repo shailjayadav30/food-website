@@ -1,8 +1,7 @@
-const express = require('express');
-const router = express.Router();
-const Order = require('../models/Order');
+const ensureauthenticated=require("../middlewares/authMiddleware")
+const router =require("express").Router();
 
-// Place a new order
+
 router.post('/place', async (req, res) => {
   const { user, items, totalAmount } = req.body;
 
