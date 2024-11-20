@@ -1,77 +1,90 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, ChangeEvent, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
-const FoodOrderingSignup = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("user"); // Default role
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+interface SignupInfo {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}
 
-  const handleSignup = async (e: { preventDefault: () => void }) => {
+const FoodOrderingSignup: React.FC = () => {
+  const [signupInfo, setSignupInfo] = useState<SignupInfo>({
+    name: "",
+    email: "",
+    password: "",
+    role: "user",
+  });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const navigate = useNavigate();
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setSignupInfo((prevState) => ({ ...prevState, [name]: value }));
+  };
+
+  const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const { name, email, password, role } = signupInfo;
 
-    // Basic validation
-    if (!name || !email || !password || !confirmPassword || !role) {
-      setError("Please fill in all fields");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
+    if (!name || !email || !password) {
+      return setError("All fields are required.");
     }
 
-    setError("");
     setLoading(true);
+    setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/signup", {
-        name,
-        email,
-        password,
-        role,
+      const response = await fetch("http://localhost:5000/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
       });
 
-      if (response.data.success) {
-        setSuccess("Signup successful! You can now log in.");
-        setName("");
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-        setRole("user");
+      const result = await response.json();
+      if (result.success) {
+        localStorage.setItem("token", result.jwttoken);
+        localStorage.setItem("loggedinuser", result.name);
+
+        // Redirect based on role
+        navigate(role === "admin" ? "/admin-dashboard" : "/user-dashboard");
       } else {
-        setError(response.data.message || "Signup failed. Please try again.");
+        setError(result.message || "Signup failed. Please try again.");
       }
-    } catch (err) {
-      console.error("Error during signup:", err);
-      setError("An error occurred. Please try again later.");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-200 to-blue-400">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-200 to-orange-400">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h2 className="text-2xl font-bold text-center text-gray-800">
           Food Ordering Signup
         </h2>
         {error && <p className="text-red-500 text-center">{error}</p>}
-        {success && <p className="text-green-500 text-center">{success}</p>}
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Full Name
+              Name
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Enter your full name"
+              name="name"
+              value={signupInfo.name}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              placeholder="Enter your name"
               required
             />
           </div>
@@ -81,9 +94,10 @@ const FoodOrderingSignup = () => {
             </label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              name="email"
+              value={signupInfo.email}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Enter your email"
               required
             />
@@ -94,23 +108,11 @@ const FoodOrderingSignup = () => {
             </label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              name="password"
+              value={signupInfo.password}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Enter your password"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Confirm your password"
               required
             />
           </div>
@@ -119,25 +121,35 @@ const FoodOrderingSignup = () => {
               Role
             </label>
             <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              name="role"
+              value={signupInfo.role}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-yellow-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 text-sm text-gray-700">Remember Me</label>
+          </div>
           <button
             type="submit"
-            className="w-full py-2 mt-4 font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full py-2 mt-4 font-semibold text-white bg-yellow-500 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
             disabled={loading}
           >
-            {loading ? "Signing up..." : "Sign Up"}
+            {loading ? "Signing up..." : "Signup"}
           </button>
         </form>
         <p className="text-center text-gray-600 text-sm">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <a href="/login" className="text-yellow-600 hover:underline">
             Login
           </a>
         </p>

@@ -1,52 +1,71 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import axios from "axios";
+import { useState, ChangeEvent, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
-const FoodOrderingLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+interface LoginInfo {
+  email: string;
+  password: string;
+  role: string;
+}
+
+interface LoginResponse {
+  success: boolean;
+  jwttoken?: string;
+  name?: string;
+  message?: string;
+}
+
+const FoodOrderingLogin: React.FC = () => {
+  const [loginInfo, setLoginInfo] = useState<LoginInfo>({
+    email: "",
+    password: "",
+    role: "user",
+  });
   const [rememberMe, setRememberMe] = useState(false);
-  const [role, setRole] = useState("user"); 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: { preventDefault: () => void }) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setLoginInfo((prevState) => ({ ...prevState, [name]: value }));
+  };
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || !password || !role) {
-      setError("Please fill in all fields");
+    const { email, password, role } = loginInfo;
+
+    if (!email || !password) {
+      setError("Email and password are required.");
       return;
     }
 
-    setError("");
     setLoading(true);
+    setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/login", {
-        email,
-        password,
-        role,
+      const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role }),
       });
 
-      // Handle response
-      if (response.data.success) {
-        console.log("Login successful:", response.data);
+      const result: LoginResponse = await response.json();
 
-        // Save token or user info in localStorage (optional)
-        localStorage.setItem("authToken", response.data.token);
+      if (result.success) {
+        if (result.jwttoken) localStorage.setItem("token", result.jwttoken);
+        if (result.name) localStorage.setItem("loggedinuser", result.name);
 
-        // Navigate to the appropriate dashboard
-        if (role === "admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/user-dashboard");
-        }
+        // Redirect based on role
+        navigate(role === "admin" ? "/admin-dashboard" : "/user-dashboard");
       } else {
-        setError(response.data.message || "Login failed. Please try again.");
+        setError(result.message || "Login failed. Please try again.");
       }
-    } catch (err) {
-      console.error("Error during login:", err);
-      setError("An error occurred. Please try again later.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -61,38 +80,35 @@ const FoodOrderingLogin = () => {
         {error && <p className="text-red-500 text-center">{error}</p>}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={loginInfo.email}
+              onChange={handleInputChange}
               className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Enter your email"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={loginInfo.password}
+              onChange={handleInputChange}
               className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="Enter your password"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Role
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Role</label>
             <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              name="role"
+              value={loginInfo.role}
+              onChange={handleInputChange}
               className="w-full px-3 py-2 mt-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
             >
               <option value="user">User</option>
@@ -117,7 +133,7 @@ const FoodOrderingLogin = () => {
           </button>
         </form>
         <p className="text-center text-gray-600 text-sm">
-          Don't have an account?{""}
+          Don't have an account?{" "}
           <a href="/signup" className="text-yellow-600 hover:underline">
             Sign up
           </a>

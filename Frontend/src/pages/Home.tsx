@@ -3,13 +3,20 @@ import noodles from "../images/noodles.svg"
 import Menu from "./Menu";
 import { useNavigate } from "react-router";
 import Footer from "./Footer";
+import { useEffect, useState } from "react";
+import { ToastContainer } from "react-toastify";
 const Home = () => {
+  const [loggedinuser,setloggedinuser]=useState("")
   const navigate =useNavigate()
+  useEffect(()=>{
+  const user= localStorage.getItem("loggedinuser")||"Guest"
+  setloggedinuser(user)
+  },[])
   return (
     <div>
       <div className="bg-gradient-to-r from-[#FBAB7E] to-[#F7CE68] h-screen flex   pt-[4rem] justify-center">
       <div className=" py-10">
-        <h1 className="text-7xl font-bold text-white">Best Restaurant <br /> in <span className="text-[#f54748]">Town.</span></h1>
+        <h1 className="text-7xl font-bold text-white">Best Restaurant <br /> in <span className="text-[#f54748]">Town. {loggedinuser}</span></h1>
 
         <p className=" leading-[200%] text-[1.25rem] text-[#5c4429] w-[80%] font-normal md:w-full undefined">We provide best food in town, we provide <br /> home delivery and dine in services.</p>
        
@@ -22,6 +29,7 @@ const Home = () => {
       <div>
         <img src={noodles} alt="" />
       </div>
+      <ToastContainer/>
     </div>
     <Popular/>
     <Menu/>

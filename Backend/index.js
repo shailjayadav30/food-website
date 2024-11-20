@@ -7,12 +7,12 @@ const  orderrouter=require("./routes/order")
 require("dotenv").config();
 require("./models/db")
 const PORT=process.env.PORT ||4000
-app.get("/",(req,res)=>{
-  res.send("shailja")})
-app.use(bodyparser.json())
+ 
+// app.use(bodyparser.json())
 app.use(cors())
-app.use("/auth", Authrouter);
-app.use("/orders", orderrouter);
+app.use("/api/auth", Authrouter);
+// app.use("/orders", orderrouter);
+
 app.listen(PORT,()=>{
   console.log(`server is running on ${PORT}`)
 })
